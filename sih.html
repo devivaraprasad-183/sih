@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Crop Advisor</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .language-selector {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .language-selector select {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: white;
+            font-size: 1rem;
+        }
+
+        .form-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .voice-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .voice-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .voice-btn:hover {
+            background: #ff3742;
+            transform: scale(1.05);
+        }
+
+        .voice-btn.listening {
+            background: #2ed573;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76,175,80,0.3);
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .recommendations {
+            margin-top: 20px;
+        }
+
+        .crop-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border-left: 5px solid #4CAF50;
+        }
+
+        .crop-card h3 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+
+        .crop-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .detail-item {
+            background: rgba(76,175,80,0.1);
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            color: #666;
+            display: block;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .sustainability-score {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .score-bar {
+            width: 100px;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            margin-left: 10px;
+            overflow: hidden;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4757, #ffa502, #2ed573);
+            transition: width 0.3s;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: white;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .offline-indicator {
+            background: #ff4757;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .offline-indicator.show {
+            display: block;
+        }
+
+        .speak-btn {
+            background: #5352ed;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .speak-btn:hover {
+            background: #3742fa;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .crop-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="app-title">🌾 AI Crop Advisor</h1>
+            <p id="app-subtitle">Smart farming recommendations for better yields</p>
+        </div>
+
+        <div class="offline-indicator" id="offline-indicator">
+            📶 You're offline. Recommendations will sync when connected.
+        </div>
+
+        <div class="language-selector">
+            <select id="language-select">
+                <option value="en">English</option>
+                <option value="hi">हिंदी (Hindi)</option>
+                <option value="ta">தமிழ் (Tamil)</option>
+                <option value="te">తెలుగు (Telugu)</option>
+                <option value="bn">বাংলা (Bengali)</option>
+            </select>
+        </div>
+
+        <div class="form-card">
+            <form id="crop-form">
+                <div class="form-group">
+                    <label for="location" id="location-label">📍 Location (City, State)</label>
+                    <input type="text" id="location" name="location" placeholder="e.g., Mumbai, Maharashtra" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="soil-ph" id="soil-ph-label">🧪 Soil pH Level</label>
+                    <input type="number" id="soil-ph" name="soil_ph" step="0.1" min="0" max="14" placeholder="6.5" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="nitrogen" id="nitrogen-label">N - Nitrogen (kg/ha)</label>
+                    <input type="number" id="nitrogen" name="nitrogen" step="1" min="0" placeholder="40" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phosphorus" id="phosphorus-label">P - Phosphorus (kg/ha)</label>
+                    <input type="number" id="phosphorus" name="phosphorus" step="1" min="0" placeholder="60" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="potassium" id="potassium-label">K - Potassium (kg/ha)</label>
+                    <input type="number" id="potassium" name="potassium" step="1" min="0" placeholder="20" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="last-crop" id="last-crop-label">🌱 Last Grown Crop</label>
+                    <select id="last-crop" name="last_crop" required>
+                        <option value="">Select previous crop</option>
+                        <option value="rice">Rice</option>
+                        <option value="wheat">Wheat</option>
+                        <option value="maize">Maize</option>
+                        <option value="sugarcane">Sugarcane</option>
+                        <option value="cotton">Cotton</option>
+                        <option value="pulses">Pulses</option>
+                        <option value="vegetables">Vegetables</option>
+                        <option value="none">No previous crop</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label id="voice-input-label">🎤 Voice Input (Optional)</label>
+                    <div class="voice-input">
+                        <button type="button" id="voice-btn" class="voice-btn">
+                            🎤 Speak
+                        </button>
+                        <input type="text" id="voice-text" placeholder="Voice input will appear here..." readonly>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submit-btn">
+                    Get Crop Recommendations
+                </button>
+            
+            </form>
+        </div>
+
+        <div class="loading" id="loading">
+            <p>🔍 Analyzing your farm conditions...</p>
+            <p>Fetching weather and soil data...</p>
+        </div>
+
+        <div class="recommendations" id="recommendations">
+            <!-- Crop recommendations will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+        // Define translation text for English and Hindi UI
+const translations = {
+    en: {
+        'app-title': '🌾 AI Crop Advisor',
+        'app-subtitle': 'Smart farming recommendations for better yields',
+        'location-label': '📍 Location (City, State)',
+        'soil-ph-label': '🧪 Soil pH Level',
+        'nitrogen-label': 'N - Nitrogen (kg/ha)',
+        'phosphorus-label': 'P - Phosphorus (kg/ha)',
+        'potassium-label': 'K - Potassium (kg/ha)',
+        'last-crop-label': '🌱 Last Grown Crop',
+        'voice-input-label': '🎤 Voice Input (Optional)',
+        'submit-btn': 'Get Crop Recommendations'
+    },
+    hi: {
+        'app-title': '🌾 एआई फसल सलाहकार',
+        'app-subtitle': 'बेहतर पैदावार के लिए स्मार्ट कृषि सिफारिशें',
+        'location-label': '📍 स्थान (शहर, राज्य)',
+        'soil-ph-label': '🧪 मिट्टी का पीएच स्तर',
+        'nitrogen-label': 'N - नाइट्रोजन (किग्रा/हेक्टेयर)',
+        'phosphorus-label': 'P - फास्फोरस (किग्रा/हेक्टेयर)',
+        'potassium-label': 'K - पोटेशियम (किग्रा/हेक्टेयर)',
+        'last-crop-label': '🌱 पिछली उगाई गई फसल',
+        'voice-input-label': '🎤 आवाज इनपुट (वैकल्पिक)',
+        'submit-btn': 'फसल सिफारिशें प्राप्त करें'
+    },
+    ta: {
+        'app-title': '🌾 ஏ.ஐ பயிர் ஆலோசகர்',
+        'app-subtitle': 'மேம்பட்ட விளைச்சலுக்கான புத்திசாலி விவசாய பரிந்துரைகள்',
+        'location-label': '📍 இடம் (நகரம், மாநிலம்)',
+        'soil-ph-label': '🧪 மண் பி.எச் நிலை',
+        'nitrogen-label': 'N - நைட்ரஜன் (கிலோ/ஹெக்டேர்)',
+        'phosphorus-label': 'P - பாஸ்பரஸ் (கிலோ/ஹெக்டேர்)',
+        'potassium-label': 'K - பொட்டாசியம் (கிலோ/ஹெக்டேர்)',
+        'last-crop-label': '🌱 கடைசியாக வளர்த்த பயிர்',
+        'voice-input-label': '🎤 குரல் உள்ளீடு (விருப்பமானது)',
+        'submit-btn': 'பயிர் பரிந்துரைகளைப் பெறுக'
+    },
+    bn  :{
+        'app-title': '🌾 এআই ফসল উপদেষ্টা',
+        'app-subtitle': 'উন্নত ফলনের জন্য স্মার্ট কৃষি সুপারিশ',
+        'location-label': '📍 অস্থান (শহর, রাজ্য)',
+        'soil-ph-label': '🧪 মাটির পিএইচ স্তর',
+        'nitrogen-label': 'N - নাইট্রোজেন (কেজি/হেক্টর)',
+        'phosphorus-label': 'P - ফসফরাস (কেজি/হেক্টর)',
+        'potassium-label': 'K - পটাশিয়াম (কেজি/হেক্টর)',
+        'last-crop-label': '🌱 সর্বশেষ চাষকৃত ফসল',
+        'voice-input-label': '🎤 ভয়েস ইনপুট (ঐচ্ছিক)',
+        'submit-btn': 'ফসলের সুপারিশ পান'
+    },
+    te : {
+        'app-title': '🌾 ఎ.ఐ పంట సలహాదారు',
+        'app-subtitle': 'మంచి దిగుబడికి స్మార్ట్ వ్యవసాయ సిఫార్సులు',
+        'location-label': '📍 స్థానం (నగరం, రాష్ట్రం)',
+        'soil-ph-label': '🧪 మట్టి పీహెచ్ స్థాయి',
+        'nitrogen-label': 'N - నైట్రోజన్ (కిలో/హెక్టేర్)',
+        'phosphorus-label': 'P - ఫాస్ఫరస్ (కిలో/హెక్టేర్)',
+        'potassium-label': 'K - పొటాషియం (కిలో/హెక్టేర్)',
+        'last-crop-label': '🌱 చివరిగా పెంచిన పంట',
+        'voice-input-label': '🎤 వాయిస్ ఇన్‌పుట్ (ఐచ్ఛికం)',
+        'submit-btn': 'పంట సిఫార్సులు పొందండి'
+    }
+
+};
+
+// Global variables
+let isListening = false;        
+let recognition;                 
+let currentLanguage = 'en';       
+
+// Runs when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    setupVoiceRecognition();      
+    setupLanguageSelector();      
+    setupFormSubmission();        
+    setupOfflineDetection();     
+    loadCachedRecommendations();  
+});
+
+// Setup voice recognition if supported
+function setupVoiceRecognition() {
+    if ('webkitSpeechRecognition' in window) { 
+        recognition = new webkitSpeechRecognition(); 
+        recognition.continuous = false;             
+        recognition.interimResults = false;         
+        recognition.lang = 'en-US';                  
+
+        // When voice recognition starts
+        recognition.onstart = function() {
+            isListening = true;                      // Set listening flag to true
+            const voiceBtn = document.getElementById('voice-btn');
+            voiceBtn.classList.add('listening');     // Add class for visual feedback
+            voiceBtn.innerHTML = '🔴 Listening...';   // Update button text
+        };
+
+        // When voice recognition gets a result
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript; // Get spoken text
+            document.getElementById('voice-text').value = transcript; // Show it in input
+            parseVoiceInput(transcript);                        // Parse it for crop/NPK values
+        };
+
+        // When voice recognition ends
+        recognition.onend = function() {
+            isListening = false;                    // Reset listening flag
+            const voiceBtn = document.getElementById('voice-btn');
+            voiceBtn.classList.remove('listening'); // Remove visual feedback
+            voiceBtn.innerHTML = '🎤 Speak';         // Reset button text
+        };
+
+        // Add click listener to the voice button
+        document.getElementById('voice-btn').addEventListener('click', function() {
+            if (isListening) {
+                recognition.stop();                 // Stop listening if already started
+            } else {
+                recognition.start();                // Start listening
+            }
+        });
+    } else {
+        document.getElementById('voice-btn').style.display = 'none'; // Hide button if unsupported
+    }
+}
+
+// Parse voice input to auto-fill form
+function parseVoiceInput(text) {
+    const lowerText = text.toLowerCase(); // Convert to lowercase for easier matching
+
+    // Detect known crop names (English or Hindi)
+    if (lowerText.includes('wheat') || lowerText.includes('गेहूं')) {
+        document.getElementById('last-crop').value = 'wheat';
+    }
+    if (lowerText.includes('rice') || lowerText.includes('चावल')) {
+        document.getElementById('last-crop').value = 'rice';
+    }
+
+    // Extract numbers from text for NPK values
+    const numbers = text.match(/\d+/g); // Get all numbers in input
+    if (numbers && numbers.length >= 3) {
+        document.getElementById('nitrogen').value = numbers[0];
+        document.getElementById('phosphorus').value = numbers[1];
+        document.getElementById('potassium').value = numbers[2];
+    }
+}
+
+// Setup language selector dropdown
+function setupLanguageSelector() {
+    const languageSelect = document.getElementById('language-select');
+    languageSelect.addEventListener('change', function(e) {
+        currentLanguage = e.target.value;      // Update current language
+        updateLanguage(currentLanguage);       // Update UI and recognition language
+    });
+}
+
+// Change the UI text based on selected language
+function updateLanguage(lang) {
+    if (translations[lang]) {
+        Object.keys(translations[lang]).forEach(key => {
+            const element = document.getElementById(key);
+            if (element) {
+                if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+                    if (key === 'submit-btn') {
+                        element.textContent = translations[lang][key]; // Set button text
+                    }
+                } else {
+                    element.textContent = translations[lang][key];     // Set label text
+                }
+            }
+        });
+    }
+
+    // Update voice recognition language
+    if (recognition) {
+        const langCodes = {
+            'en': 'en-US',
+            'hi': 'hi-IN',
+            'ta': 'ta-IN',
+            'te': 'te-IN',
+            'bn': 'bn-IN'
+        };
+        recognition.lang = langCodes[lang] || 'en-US';
+       // recognition.stop(); // restart recognition to apply new language
+    }
+}
+
+// Setup the form submission event
+function setupFormSubmission() {
+    const form = document.getElementById('crop-form');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();                  // Prevent page reload
+        submitRecommendationRequest();      // Call custom submit logic
+    });
+}
+
+// Handle the recommendation form submission
+async function submitRecommendationRequest() {
+    const loading = document.getElementById('loading');
+    const submitBtn = document.getElementById('submit-btn');
+
+    loading.classList.add('show');          // Show loading indicator
+    submitBtn.disabled = true;             // Disable button to prevent resubmission
+
+    // Collect form data 
+    const formData = {
+        location: document.getElementById('location').value,
+        soil_ph: parseFloat(document.getElementById('soil-ph').value),
+        nitrogen: parseInt(document.getElementById('nitrogen').value),
+        phosphorus: parseInt(document.getElementById('phosphorus').value),
+        potassium: parseInt(document.getElementById('potassium').value),
+        last_crop: document.getElementById('last-crop').value,
+        language: currentLanguage
+    };
+
+    try {
+        // Check if online
+        if (navigator.onLine) {
+            // Send POST request to backend
+            const response = await fetch('/api/get_recommendation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                const recommendations = await response.json(); // Parse JSON result
+                displayRecommendations(recommendations);       // Show it in UI
+                cacheRecommendations(recommendations);         // Save it in cache
+            } else {
+                throw new Error('Server error');
+            }
+        } else {
+            // Offline fallback: use mock data
+            const mockRecommendations = generateMockRecommendations(formData);
+            displayRecommendations(mockRecommendations);
+        }
+    } catch (error) {
+        console.error('Error:', error); // Log errors
+        // Fallback to mock data
+        const mockRecommendations = generateMockRecommendations(formData);
+        displayRecommendations(mockRecommendations);
+    } finally {
+        loading.classList.remove('show'); // Hide loading indicator
+        submitBtn.disabled = false;       // Re-enable submit button
+    }
+}
+
+// Generate fake data when offline or error
+function generateMockRecommendations(formData) {
+    const crops = ['Rice', 'Wheat', 'Maize'];
+    return {
+        recommendations: crops.map((crop, index) => ({
+            crop_name: crop,
+            predicted_yield: Math.floor(Math.random() * 50) + 20,     // Random yield
+            estimated_profit: Math.floor(Math.random() * 30000) + 10000, // Random profit
+            sustainability_score: Math.floor(Math.random() * 4) + 7,  // Random score 7-10
+            confidence: Math.floor(Math.random() * 20) + 80           // Random confidence 80-99
+        }))
+    };
+}
+
+// Show recommendations on the page
+function displayRecommendations(data) {
+    const container = document.getElementById('recommendations'); 
+    container.innerHTML = ''; // Clear previous results
+
+    data.recommendations.forEach((crop, index) => {
+        const cropCard = document.createElement('div');
+        cropCard.className = 'crop-card'; // Card style
+
+        // Fill card with crop info
+        cropCard.innerHTML = `
+            <h3>${crop.crop_name}</h3>
+            <div class="crop-details">
+                <div class="detail-item">
+                    <span class="detail-label">Yield</span>
+                    <span class="detail-value">${crop.predicted_yield} kg/acre</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Profit</span>
+                    <span class="detail-value">₹${crop.estimated_profit.toLocaleString()}</span>
+                </div>
+            </div>
+            <div class="sustainability-score">
+                <span>Sustainability: </span>
+                <div class="score-bar">
+                    <div class="score-fill" style="width: ${crop.sustainability_score * 10}%"></div>
+                </div>
+                <span style="margin-left: 10px;">${crop.sustainability_score}/10</span>
+            </div>
+            <button class="speak-btn" onclick="speakRecommendation('${crop.crop_name}', ${crop.predicted_yield}, ${crop.estimated_profit})">
+                🔊 Listen
+            </button>
+        `;
+
+        container.appendChild(cropCard); // Add card to the page
+    });
+}
+
+// Text-to-speech to read recommendation aloud
+function speakRecommendation(cropName, yield, profit) {
+    if ('speechSynthesis' in window) {
+        const text = `Recommended crop: ${cropName}. Expected yield: ${yield} kilograms per acre. Estimated profit: ${profit} rupees.`;
+        const utterance = new SpeechSynthesisUtterance(text); // Create speech object
+
+        // Set voice language based on UI
+        const voices = speechSynthesis.getVoices();
+        const langCodes = {
+            'en': 'en-US',
+            'hi': 'hi-IN',
+            'ta': 'ta-IN',
+            'te': 'te-IN',
+            'bn': 'bn-IN'
+        };
+
+        const voice = voices.find(v => v.lang.startsWith(langCodes[currentLanguage]));
+        if (voice) {
+            utterance.voice = voice; // Set appropriate voice
+        }
+
+        speechSynthesis.speak(utterance); // Speak the text
+    }
+}
+
+// Save recommendations to localStorage
+function cacheRecommendations(data) {
+    try {
+        const cacheData = {
+            timestamp: Date.now(), // Save with timestamp
+            data: data
+        };
+        localStorage.setItem('cached_recommendations', JSON.stringify(cacheData));
+    } catch (error) {
+        console.error('Failed to cache recommendations:', error);
+    }
+}
+
+// Load from localStorage if data is recent
+function loadCachedRecommendations() {
+    try {
+        const cached = localStorage.getItem('cached_recommendations');
+        if (cached) {
+            const cacheData = JSON.parse(cached);
+            if (Date.now() - cacheData.timestamp < 24 * 60 * 60 * 1000) { // 24 hours
+                displayRecommendations(cacheData.data);
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load cached recommendations:', error);
+    }
+}
+
+// Show/hide offline indicator
+function setupOfflineDetection() {
+    const offlineIndicator = document.getElementById('offline-indicator');
+
+    window.addEventListener('online', function() {
+        offlineIndicator.classList.remove('show');
+    });
+
+    window.addEventListener('offline', function() {
+        offlineIndicator.classList.add('show');
+    });
+
+    // On first load
+    if (!navigator.onLine) {
+        offlineIndicator.classList.add('show');
+    }
+}
+
+// Register service worker for offline capabilities
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+        .then(function(registration) {
+            console.log('ServiceWorker registration successful');
+        })
+        .catch(function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+        });
+    });
+}
+
+    </script>
+</body>
+</html>
